@@ -1,0 +1,14 @@
+{
+    "module-name": "example",
+    "execs": {
+        "Hotline Miami 2 Wrong Number": {
+            "exe": "C:\\Users\\natar\\Desktop\\Hotline Miami 2 Wrong Number.url"
+        },
+        "Once Upon A KATAMARI": {
+            "exe": "C:\\Users\\natar\\Desktop\\Once Upon A KATAMARI.url"
+        },
+        "eclipse": {
+            "exe": "C:\\School\\Basis programeren\\Eclipse\\eclipse\\eclipse.exe"
+        }
+    }
+}
