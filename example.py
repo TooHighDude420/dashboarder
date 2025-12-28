@@ -42,17 +42,22 @@ class ImageTileViewer(QWidget):
         self.metadata = metaData
 
     def write_to_meta(self, **kwargs):
-        self.metadata["execs"][kwargs["name"]] = {"exe":f"{kwargs['path']}"}
+        qurl = QUrl.fromLocalFile(kwargs['path'])
+        icon = kwargs['icon']
+        self.metadata["execs"][kwargs["name"]] = {"exe":f"{qurl}", "img":f"{icon}"}
         
         with open(self.metadata_path / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(self.metadata, f, indent=4)
 
     def load_from_meta(self):
         if len(self.metadata["execs"]) > 0:
-            for item in self.metadata["execs"].items():
-                for register in item[1].items():
-                    path = register[1]
-                    self.dyn_tile(path)
+            for name, items in self.metadata["execs"].items():
+                exe_path = items.get("exe")
+                img_path = items.get("img")
+                
+                exe_path = QUrl(exe_path)
+                
+                self.dyn_tile(exe_path, name=name, img=img_path)
                     
     def launch_add_app(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -65,14 +70,36 @@ class ImageTileViewer(QWidget):
         if file_path:
             self.dyn_tile(file_path)
 
-    def dyn_tile(self, file_path):
-        tmp_path = Path(file_path)
-        tmp_name = tmp_path.stem
-        tmp_action = lambda event: QDesktopServices.openUrl(QUrl(QUrl.fromLocalFile(str(tmp_path))))
+    def get_img_from_url(self, url_path):
+        from configparser import ConfigParser
+        
+        config = ConfigParser()
+        config.read(url_path, encoding="utf-8")
 
-        tmp_tile = self.create_tile(str(tmp_path), tmp_name, tmp_action, ico=True)
-        self.add_to_grid(tmp_tile)
-        self.write_to_meta(name=tmp_name, path=tmp_path)
+        # Get the icon file path
+        icon_file = config.get("InternetShortcut", "IconFile", fallback=None)
+        icon_index = config.getint("InternetShortcut", "IconIndex", fallback=0)
+        
+        return icon_file
+        
+    
+    def dyn_tile(self, file_path, **kwargs):
+        if type(file_path) is str:
+            tmp_path = Path(file_path)
+            icon_file = self.get_img_from_url(tmp_path)
+            tmp_name = tmp_path.stem
+            tmp_action = lambda event: QDesktopServices.openUrl(QUrl(QUrl.fromLocalFile(file_path)))
+
+            tmp_tile = self.create_tile(icon_file, tmp_name, tmp_action)
+            self.add_to_grid(tmp_tile)
+            self.write_to_meta(name=tmp_name, path=file_path, icon=icon_file)
+        else:
+            tmp_name = kwargs['name']
+            tmp_image = kwargs['img']
+            tmp_action = lambda event: QDesktopServices.openUrl(file_path)
+
+            tmp_tile = self.create_tile(tmp_image, tmp_name, tmp_action)
+            self.add_to_grid(tmp_tile)
 
     def init_ui(self):
         self.main_layout = QVBoxLayout(self)
@@ -100,7 +127,7 @@ class ImageTileViewer(QWidget):
                 self.col = 0
                 self.row += 1
 
-    def create_tile(self, image_path: str, text: str, luanch, ico: bool) -> QWidget:
+    def create_tile(self, image_path: str, text: str, luanch) -> QWidget:
         tile = QWidget()
 
         layout = QVBoxLayout(tile)
@@ -109,15 +136,18 @@ class ImageTileViewer(QWidget):
 
         image_label = QLabel()
         
-        if not ico:
-            pixmap = QPixmap(image_path)
-            image_label.setPixmap(
-                pixmap.scaled(128, 128, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            )
-        else:
+        if type(image_path) is not str:
+            image_path = image_path.toLocalFile() 
+        
+        if Path(image_path).suffix == ".ico":
             icon = QIcon(image_path)
             image_label.setPixmap(
                 icon.pixmap(128, 128)
+            )
+        else:
+            pixmap = QPixmap(image_path)
+            image_label.setPixmap(
+                pixmap.scaled(128, 128, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             )
             
         image_label.setAlignment(Qt.AlignCenter)
