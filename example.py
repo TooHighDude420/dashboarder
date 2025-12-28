@@ -16,15 +16,10 @@ class ImageTileViewer(QWidget):
         self.columns = 4
         self.row = self.col = 0
         self.official = officialmodule.Plugin()
-        self.make_meta()
-        
-        with open(self.metadata_path / "metadata.json", "r", encoding="utf-8") as f:
-            metaData = json.load(f)
-        
-        self.metadata = metaData
-        
+        self.make_meta()        
         self.image_files = image_files
         self.init_ui()
+        self.load_from_meta()
 
     def make_meta(self):
         self.metadata_path = settings.ROOT_DIR / "ModuleData" / "example"
@@ -40,13 +35,25 @@ class ImageTileViewer(QWidget):
                     \n}"""
                     )
                 metadata.close()
+        
+        with open(self.metadata_path / "metadata.json", "r", encoding="utf-8") as f:
+            metaData = json.load(f)
+        
+        self.metadata = metaData
 
     def write_to_meta(self, **kwargs):
         self.metadata["execs"][kwargs["name"]] = {"exe":f"{kwargs['path']}"}
         
         with open(self.metadata_path / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(self.metadata, f, indent=4)
-        
+
+    def load_from_meta(self):
+        if len(self.metadata["execs"]) > 0:
+            for item in self.metadata["execs"].items():
+                for register in item[1].items():
+                    path = register[1]
+                    self.dyn_tile(path)
+                    
     def launch_add_app(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self,
@@ -56,17 +63,16 @@ class ImageTileViewer(QWidget):
         )
 
         if file_path:
-            tmp_path = Path(file_path)
-            tmp_name = tmp_path.stem
-            tmp_action = lambda event: QDesktopServices.openUrl(QUrl(QUrl.fromLocalFile(str(tmp_path))))
-            print(tmp_name)
-            
-            tmp_tile = self.create_tile(str(tmp_path), tmp_name, tmp_action, ico=True)
-            self.add_to_grid(tmp_tile)
-            self.write_to_meta(name=tmp_name, path=tmp_path)
+            self.dyn_tile(file_path)
 
-    def on_click(self, event):
-        print("action")
+    def dyn_tile(self, file_path):
+        tmp_path = Path(file_path)
+        tmp_name = tmp_path.stem
+        tmp_action = lambda event: QDesktopServices.openUrl(QUrl(QUrl.fromLocalFile(str(tmp_path))))
+
+        tmp_tile = self.create_tile(str(tmp_path), tmp_name, tmp_action, ico=True)
+        self.add_to_grid(tmp_tile)
+        self.write_to_meta(name=tmp_name, path=tmp_path)
 
     def init_ui(self):
         self.main_layout = QVBoxLayout(self)
