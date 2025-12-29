@@ -19,7 +19,7 @@ class ImageTileViewer(QWidget):
 
     def make_meta(self):
         self.metadata_path = settings.ROOT_DIR / "ModuleData" / "example"
-        if not os.path.exists(self.metadata_path):
+        if not os.path.exists(self.metadata_path / "metadata.json"):
             os.makedirs(self.metadata_path, exist_ok=True)
             
             with open(self.metadata_path / "metadata.json", mode="w") as metadata:
@@ -72,6 +72,20 @@ class ImageTileViewer(QWidget):
 
         if file_path:
             self.dyn_tile(file_path)
+    
+    def launch_add_multiple_app(self):
+        file_paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Select a file",
+            "",
+            "All Files (*);;Images (*.png *.jpg *.jpeg)"
+        )
+        
+        for file in file_paths:
+            try:
+                self.dyn_tile(file)
+            except Exception as e:
+                print(f"{file} couldt not be added\n reason:{e}")
 
     def get_img_from_url(self, url_path):
         from configparser import ConfigParser
@@ -105,9 +119,17 @@ class ImageTileViewer(QWidget):
 
     def init_ui(self):
         self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0,0,0,0)
+        self.main_layout.setSpacing(10)
+        
         self.upper_menu = QMenuBar(self)
+        self.upper_menu.setObjectName("topMenu")
+        self.upper_menu.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
+        self.main_layout.addWidget(self.upper_menu, stretch=1)
+        
         file_menu = QMenu("Add", self)
+        file_menu.parent().setObjectName("addMenu")
         add_one = QAction("One app", self)
         add_more = QAction("Multiple apps", self)
 
@@ -115,16 +137,18 @@ class ImageTileViewer(QWidget):
         file_menu.addAction(add_more)
         
         add_one.triggered.connect(self.launch_add_app)
-        # exit_action.triggered.connect(self.close)
+        add_more.triggered.connect(self.launch_add_multiple_app)
 
         self.upper_menu.addMenu(file_menu)
         
         self.grid_widget = QWidget()
+        self.grid_widget.setObjectName("gridWidget")
         self.grid_layout = QGridLayout(self.grid_widget)
+        self.grid_layout.setObjectName("gridLayout")
         
-        self.grid_layout.setSpacing(10)
+        self.grid_layout.setSpacing(5)
         
-        self.main_layout.addWidget(self.grid_widget)
+        self.main_layout.addWidget(self.grid_widget, stretch=9)
 
     def add_to_grid(self, *widgets):
         for widget in widgets:
