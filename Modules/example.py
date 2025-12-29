@@ -1,23 +1,19 @@
 import sys, os, settings, json
 
 from pathlib import Path
-from Modules import officialmodule
+from . import officialmodule
 from PySide6.QtWidgets import *
 from PySide6.QtGui import *
 from PySide6.QtCore import *
 
 class ImageTileViewer(QWidget):
-    def __init__(self, image_files):
+    def __init__(self):
         super().__init__()
-
-        if not image_files:
-            raise ValueError("The list of image files cannot be empty.")
 
         self.columns = 4
         self.row = self.col = 0
         self.official = officialmodule.Plugin()
         self.make_meta()        
-        self.image_files = image_files
         self.init_ui()
         self.load_from_meta()
 
@@ -42,7 +38,7 @@ class ImageTileViewer(QWidget):
         self.metadata = metaData
 
     def write_to_meta(self, **kwargs):
-        qurl = QUrl.fromLocalFile(kwargs['path'])
+        qurl =kwargs['path']
         icon = kwargs['icon']
         self.metadata["execs"][kwargs["name"]] = {"exe":f"{qurl}", "img":f"{icon}"}
         
@@ -50,12 +46,19 @@ class ImageTileViewer(QWidget):
             json.dump(self.metadata, f, indent=4)
 
     def load_from_meta(self):
+        if self.metadata.get("style") is not None:
+            stylesheet_path = Path(self.metadata.get("style"))
+            
+            with open(stylesheet_path, "r") as f:
+                self.setStyleSheet(f.read())
+            
         if len(self.metadata["execs"]) > 0:
             for name, items in self.metadata["execs"].items():
                 exe_path = items.get("exe")
                 img_path = items.get("img")
                 
-                exe_path = QUrl(exe_path)
+                exe_path = QUrl.fromLocalFile(exe_path)
+                print(f"exe = {exe_path}")
                 
                 self.dyn_tile(exe_path, name=name, img=img_path)
                     
@@ -82,7 +85,6 @@ class ImageTileViewer(QWidget):
         
         return icon_file
         
-    
     def dyn_tile(self, file_path, **kwargs):
         if type(file_path) is str:
             tmp_path = Path(file_path)
@@ -103,20 +105,26 @@ class ImageTileViewer(QWidget):
 
     def init_ui(self):
         self.main_layout = QVBoxLayout(self)
+        self.upper_menu = QMenuBar(self)
+
+        file_menu = QMenu("Add", self)
+        add_one = QAction("One app", self)
+        add_more = QAction("Multiple apps", self)
+
+        file_menu.addAction(add_one)
+        file_menu.addAction(add_more)
         
-        self.filehandle_widget = QWidget()
+        add_one.triggered.connect(self.launch_add_app)
+        # exit_action.triggered.connect(self.close)
 
-        self.filehandle_layout = QHBoxLayout(self.filehandle_widget)
-        self.filehandle_layout.setAlignment(Qt.AlignCenter)
-
-        self.official.register_button(self.filehandle_layout, "Add App!", self.launch_add_app)
+        self.upper_menu.addMenu(file_menu)
         
         self.grid_widget = QWidget()
         self.grid_layout = QGridLayout(self.grid_widget)
+        
         self.grid_layout.setSpacing(10)
         
         self.main_layout.addWidget(self.grid_widget)
-        self.main_layout.addWidget(self.filehandle_widget)
 
     def add_to_grid(self, *widgets):
         for widget in widgets:
@@ -161,3 +169,9 @@ class ImageTileViewer(QWidget):
         layout.addWidget(text_label)
 
         return tile
+    
+def get_name():
+    return __name__.replace('Modules.', '')
+
+def action():
+    return ImageTileViewer()

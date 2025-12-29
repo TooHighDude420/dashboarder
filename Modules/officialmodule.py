@@ -4,13 +4,16 @@ class Plugin():
     def get_name(self):
         return __name__.replace('Modules.', '')
     
-    def register_button(self, layout, text, function=None, **kwargs):
+    def register_button(self, layout, text, function=None, qss_name=None, **kwargs):
         tmpbutton = QPushButton(f"{text}")
         
         if function and len(kwargs) > 0:
             tmpbutton.clicked.connect(lambda: function(**kwargs))
         elif function:
             tmpbutton.clicked.connect(function)
+            
+        if qss_name:
+            tmpbutton.setObjectName(f"{qss_name}")
         
         layout.addWidget(tmpbutton)  
         

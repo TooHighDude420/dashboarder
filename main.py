@@ -68,7 +68,7 @@ def check_sheet(regen=None):
             handle.close()
     
 def show_widget(stack, widget_cls):
-    widget = widget_cls(items=LOADED_CLASSES)
+    widget = widget_cls(items=LOADED_CLASSES, widgets=LOADED_WIDGETS)
     stack.addWidget(widget)
     stack.setCurrentWidget(widget)
     
@@ -101,6 +101,7 @@ def main():
     
     show_widget(stack, home_widget)
     # official.register_button(layout,"widget test",show_widget,stack=stack,widget_cls=LOADED_WIDGETS["home"].Widget)
+    print(f"widgets: {LOADED_WIDGETS}")
 
     window.show()
     
